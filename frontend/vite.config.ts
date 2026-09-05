@@ -4,6 +4,12 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // @ts-ignore — vitest types
+  test: {
+    environment: "jsdom",
+    setupFiles: "./src/test-setup.ts",
+    globals: true,
+  },
   server: {
     port: 5173,
     proxy: {

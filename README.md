@@ -6,7 +6,10 @@ StatLab Zim is a web application for **learning and applying basic statistics** 
 
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-blue)
 ![Streamlit 1.62](https://img.shields.io/badge/Streamlit-1.62-red)
-![Tests](https://img.shields.io/badge/tests-19%20passed-brightgreen)
+![FastAPI 0.141](https://img.shields.io/badge/FastAPI-0.141-green)
+![React 19](https://img.shields.io/badge/React-19-blue)
+![Tests](https://img.shields.io/badge/tests-49%20passed-brightgreen)
+![Frontend](https://img.shields.io/badge/frontend%20tests-3%20passed-brightgreen)
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 
 ---
@@ -223,13 +226,13 @@ Version 1 Streamlit MVP ✅ complete. Version 2 milestones progression:
 **Milestone 9: Deployment — ✅ Complete (config)**
 - `backend/Dockerfile:1` (root-context), `frontend/Dockerfile:1` (multi-stage nginx), `docker-compose.yml:1` (postgres 16 + backend + frontend), `render.yaml:1`, `vercel.json:1`, `docs/deploy-free.md:1` (Render+Vercel+Supabase free)
 
-### Version 3 — AI StatLab (Foundation + Report Generation — ✅ Complete Core)
+### Version 3 — AI StatLab (Foundation + Report Generation + Polish — ✅ Complete Core)
 - **Architecture:** `Question → interpretation → candidate selection → Python verification → AI explanation → answer` (`backend/app/ai/service.py:1`). AI never calculates; `backend/app/ai/llm.py:1` mock / openai / ollama local-first
-- **Endpoints:** `POST /ai/ask` (full pipeline), `POST /ai/suggest`, `POST /ai/explain` (means/p-values/effects/assumptions), `POST /ai/cleaning-suggest` (approval-gated), `POST /ai/report` (exec summary/methods/results/limitations, verified numbers) (`backend/app/api/routes/ai.py:1`, `backend/app/ai/report.py:1`)
-- **Frontend:** `frontend/src/pages/AI.tsx:1` chat UI, proxies `/ai` via `vite.config.ts:1`
+- **Endpoints:** `POST /ai/ask` (full pipeline), `POST /ai/suggest`, `POST /ai/explain` (means/p-values/effects/assumptions), `POST /ai/cleaning-suggest` (approval-gated), `POST /ai/report` (exec summary/methods/results/limitations, verified numbers) (`backend/app/api/routes/ai.py:1`, `backend/app/ai/report.py:1`), `GET /reports/{id}/html` & `/download` (`backend/app/api/routes/reports.py:1`)
+- **Frontend:** `frontend/src/pages/AI.tsx:1` polished — candidate cards (Feasible badge), verified cards (statistic/p-value/decision + diff view), streaming explanation, cleaning approval checkboxes; `frontend/src/pages/Reports.tsx:1` AI report preview + print/PDF; proxies `/ai` via `vite.config.ts:1`
 - **Config:** `AI_PROVIDER=mock|openai|ollama` (`backend/app/core/config.py:1`), `backend/.env.example:1`
-- **Evaluation:** `backend/tests/test_ai.py:1` 6 + `backend/tests/test_ai_report.py:1` 4 =10 AI tests; `docs/ai-evaluation.md:1` failure modes, provenance, reproducibility, privacy; `docs/deploy-free.md:1` notes Ollama offline option
-- **Verified:** total backend `30 tests` + core 19 =49
+- **Evaluation:** `backend/tests/test_ai.py:1` 6 + `backend/tests/test_ai_report.py:1` 4 =10 AI tests; `frontend/src/__tests__/AI.test.tsx:1` (Vitest) 3 frontend tests; `docs/ai-evaluation.md:1` failure modes, provenance, reproducibility, privacy; `docs/deploy-free.md:1` Ollama offline; CI includes Vitest `.github/workflows/ci.yml:1`
+- **Verified:** total backend `30 tests` + core 19 + frontend 3 =52 (49 backend+core +3 frontend)
 
 ---
 
@@ -243,11 +246,11 @@ PYTHONPATH=. pytest tests -v
 PYTHONPATH=backend pytest backend/tests -v
 PYTHONPATH=backend pytest backend/tests/test_ai.py backend/tests/test_ai_report.py -v  # Version 3 AI
 
-# Frontend typecheck + build
-cd frontend && npm run build && npx tsc --noEmit
+# Frontend typecheck + build + Vitest (3 tests)
+cd frontend && npm run build && npm test && npx tsc --noEmit
 
-# All (49 tests)
-PYTHONPATH=. pytest tests -v && PYTHONPATH=backend pytest backend/tests -v
+# All (52 tests: 49 backend+core +3 frontend)
+PYTHONPATH=. pytest tests -v && PYTHONPATH=backend pytest backend/tests -v && cd frontend && npm test
 
 .venv/bin/python -m py_compile app.py src/*.py
 PYTHONPATH=backend python -m py_compile backend/app/*.py backend/app/**/*.py backend/app/ai/*.py
@@ -299,9 +302,10 @@ Production: set `ENVIRONMENT=production`, `DEBUG=false`, `SECRET_KEY`, `DATABASE
 
 ## 🛠️ Tech Stack
 
-- **Python 3.12** · **Streamlit 1.62** · **FastAPI 0.141** · **pandas 2.2** · **numpy 2.0** · **scipy 1.14** · **statsmodels 0.14** · **plotly 7.0** · **kaleido 1.4** · **Pillow 11** · **pytest 8.3**
-- **Backend:** `pydantic-settings`, `uvicorn`, `httpx` (Milestone 1); PostgreSQL + SQLAlchemy + React TS planned for Milestones 3-4
-- **Lint/Format:** `py_compile` + manual review (no `black` enforced)
+- **Python 3.12** · **Streamlit 1.62** · **FastAPI 0.141** · **React 19 + Vite** · **pandas 2.2** · **numpy 2.0** · **scipy 1.14** · **statsmodels 0.14** · **plotly 7.0** · **kaleido 1.4** · **Pillow 11** · **pytest 8.3 + Vitest**
+- **Backend:** `pydantic-settings`, `uvicorn`, `sqlalchemy`, `passlib`/`bcrypt`, `python-jose`, `openai`/`httpx` (AI)
+- **Frontend:** `react-router-dom`, `axios`, `@testing-library/react`, `jsdom`
+- **Lint/Format:** `py_compile` + `tsc --noEmit` + Vitest + CI
 
 ---
 
