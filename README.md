@@ -223,12 +223,13 @@ Version 1 Streamlit MVP ✅ complete. Version 2 milestones progression:
 **Milestone 9: Deployment — ✅ Complete (config)**
 - `backend/Dockerfile:1` (root-context), `frontend/Dockerfile:1` (multi-stage nginx), `docker-compose.yml:1` (postgres 16 + backend + frontend), `render.yaml:1`, `vercel.json:1`, `docs/deploy-free.md:1` (Render+Vercel+Supabase free)
 
-### Version 3 — AI StatLab (Most Logical First Step — ✅ Foundation Complete)
-- **Architecture:** `Question → interpretation → candidate selection → Python verification → AI explanation → answer` (`backend/app/ai/service.py:1`). AI never calculates; `backend/app/ai/llm.py:1` mock (free, deterministic) / openai / ollama local-first
-- **Endpoints:** `POST /ai/ask` (full pipeline), `POST /ai/suggest` (candidates with reasons), `POST /ai/explain` (means/p-values/effects/assumptions), `POST /ai/cleaning-suggest` (missing/text→numeric/date/high-cardinality, approval-gated) (`backend/app/api/routes/ai.py:1`)
+### Version 3 — AI StatLab (Foundation + Report Generation — ✅ Complete Core)
+- **Architecture:** `Question → interpretation → candidate selection → Python verification → AI explanation → answer` (`backend/app/ai/service.py:1`). AI never calculates; `backend/app/ai/llm.py:1` mock / openai / ollama local-first
+- **Endpoints:** `POST /ai/ask` (full pipeline), `POST /ai/suggest`, `POST /ai/explain` (means/p-values/effects/assumptions), `POST /ai/cleaning-suggest` (approval-gated), `POST /ai/report` (exec summary/methods/results/limitations, verified numbers) (`backend/app/api/routes/ai.py:1`, `backend/app/ai/report.py:1`)
 - **Frontend:** `frontend/src/pages/AI.tsx:1` chat UI, proxies `/ai` via `vite.config.ts:1`
-- **Config:** `AI_PROVIDER=mock|openai|ollama`, `OPENAI_API_KEY`, `OLLAMA_HOST` (`backend/app/core/config.py:1`), `backend/.env.example:1`
-- **Verified:** `backend/tests/test_ai.py:1` 6 tests (interpret, suggest, ask, explain, cleaning, no-fabrication, local-first) → total backend `26 tests`
+- **Config:** `AI_PROVIDER=mock|openai|ollama` (`backend/app/core/config.py:1`), `backend/.env.example:1`
+- **Evaluation:** `backend/tests/test_ai.py:1` 6 + `backend/tests/test_ai_report.py:1` 4 =10 AI tests; `docs/ai-evaluation.md:1` failure modes, provenance, reproducibility, privacy; `docs/deploy-free.md:1` notes Ollama offline option
+- **Verified:** total backend `30 tests` + core 19 =49
 
 ---
 
@@ -238,14 +239,14 @@ Version 1 Streamlit MVP ✅ complete. Version 2 milestones progression:
 # Version 1 — Streamlit core (19 tests)
 PYTHONPATH=. pytest tests -v
 
-# Version 2 + 3 — Backend (26 tests: health 7 + milestone2 7 + db 4 + auth 2 + ai 6)
+# Version 2 + 3 — Backend (30 tests: health 7 + milestone2 7 + db 4 + auth 2 + ai 10)
 PYTHONPATH=backend pytest backend/tests -v
-PYTHONPATH=backend pytest backend/tests/test_ai.py -v  # Version 3 AI pipeline
+PYTHONPATH=backend pytest backend/tests/test_ai.py backend/tests/test_ai_report.py -v  # Version 3 AI
 
 # Frontend typecheck + build
 cd frontend && npm run build && npx tsc --noEmit
 
-# All (45 tests)
+# All (49 tests)
 PYTHONPATH=. pytest tests -v && PYTHONPATH=backend pytest backend/tests -v
 
 .venv/bin/python -m py_compile app.py src/*.py

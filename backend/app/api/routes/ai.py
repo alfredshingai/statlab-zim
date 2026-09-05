@@ -204,6 +204,14 @@ async def explain(payload: ExplainRequest):
     }
 
 
+class ReportRequest(BaseModel):
+    dataset_id: str
+    title: str = Field(..., examples=["Q1 Sales Report"])
+    project_id: str | None = None
+    methods: list[str] | None = None  # if None, auto-collect from candidates
+    include_charts: bool = False
+
+
 class CleaningSuggestRequest(BaseModel):
     dataset_id: str
 
@@ -275,4 +283,84 @@ async def cleaning_suggest(payload: CleaningSuggestRequest):
         "ai_summary": llm_resp.text,
         "note": "User approval required before destructive transforms are applied.",
         "provider": llm_resp.provider,
+    }
+
+
+@router.post("/report", summary="Generate AI-assisted report (verified numbers)")
+async def ai_report(payload: ReportRequest):
+    """Draft report sections with verified results; optionally persist as Report if project_id provided."""
+    df = _get_df(payload.dataset_id)
+    dataset_info = {
+        "rows": int(df.shape[0]),
+        "columns": int(df.shape[1]),
+        "column_names": list(df.columns),
+    }
+
+    # Auto-pick methods via suggest if not provided
+    methods = payload.methods
+    if not methods:
+        cands = suggest_analyses("Generate report for this dataset", df)
+        methods = [c["test_type"] for c in cands[:4]]
+
+    # Verify each method
+    verified = []
+    for m in methods[:4]:
+        cand = {"test_type": m, "assumptions": ""}
+        v = verify_and_calculate(df, cand)
+        if "result" in v and isinstance(v["result"], dict):
+            v["result"] = _sanitize_result(v["result"])
+        v = _sanitize(v)
+        verified.append(v)
+
+    from app.ai.report import draft_report
+
+    sections = await draft_report(
+        title=payload.title,
+        dataset_info=dataset_info,
+        methods_used=methods,
+        verified_results=verified,
+        charts=[] if not payload.include_charts else [{"placeholder": "charts not yet auto-generated"}],
+    )
+
+    # Optionally persist if project_id + auth (but /ai/report is open for free tier demo; persist via /reports/generate separately)
+    report_id = None
+    if payload.project_id:
+        # Try to persist if caller provides project_id and we can verify existence (no auth required for mock)
+        from app.db.session import SessionLocal
+        from app.db.models import Report, Project
+
+        db = SessionLocal()
+        try:
+            proj = db.query(Project).filter(Project.id == payload.project_id).first()
+            if proj:
+                rep = Report(
+                    title=payload.title,
+                    dataset_info=dataset_info,
+                    methods=methods,
+                    results={"verified": verified, "sections": sections},
+                    charts=[],
+                    interpretation=sections.get("executive_summary"),
+                    limitations=sections.get("limitations"),
+                    project_id=payload.project_id,
+                    owner_id=proj.owner_id,
+                )
+                db.add(rep)
+                db.commit()
+                db.refresh(rep)
+                report_id = rep.id
+        except Exception:
+            pass
+        finally:
+            db.close()
+
+    return {
+        "dataset_id": payload.dataset_id,
+        "title": payload.title,
+        "dataset_info": dataset_info,
+        "methods": methods,
+        "verified": verified,
+        "report": sections,
+        "report_id": report_id,
+        "provenance": "All numbers from Python verification; AI only drafted prose.",
+        "note": "Executive summary/methods/results/limitations are AI-drafted but grounded in verified_results.",
     }
