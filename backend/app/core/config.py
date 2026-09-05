@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # Server
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    PORT: int = 8000  # Render overrides via $PORT env var at runtime
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = [

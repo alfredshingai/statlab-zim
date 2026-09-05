@@ -20,5 +20,5 @@ WORKDIR /app/backend
 
 EXPOSE 8000
 
-# Run migrations / create tables then start
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Render free sets $PORT dynamically; shell form allows $PORT expansion
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
