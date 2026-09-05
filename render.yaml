@@ -9,9 +9,7 @@ services:
     plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: .
-    # Render sets PORT automatically; our Dockerfile CMD should respect $PORT
-    # Use startCommand to override Dockerfile CMD for Render free
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # Render sets PORT automatically; Dockerfile CMD uses ${PORT:-8000} (no startCommand for docker runtime)
     envVars:
       - key: PYTHONPATH
         value: /app:/app/backend
