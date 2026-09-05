@@ -13,6 +13,7 @@ export default defineConfig({
       '/auth': 'http://localhost:8000',
       '/projects': 'http://localhost:8000',
       '/reports': 'http://localhost:8000',
+      '/ai': 'http://localhost:8000',
       '/api': 'http://localhost:8000',
       '/docs': 'http://localhost:8000',
       '/openapi.json': 'http://localhost:8000',

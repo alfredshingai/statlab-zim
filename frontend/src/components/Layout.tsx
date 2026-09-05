@@ -13,6 +13,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { to: "/projects", label: "Projects" },
     { to: "/reports", label: "Reports" },
     { to: "/auth", label: "Auth" },
+    { to: "/ai", label: "AI" },
   ];
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", background: "#f6f7fb" }}>

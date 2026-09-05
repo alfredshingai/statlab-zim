@@ -27,6 +27,7 @@ from app.api.routes.analyses import router as analyses_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.projects import router as projects_router
 from app.api.routes.reports import router as reports_router
+from app.api.routes.ai import router as ai_router
 from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import engine
@@ -55,7 +56,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.PROJECT_NAME,
         version=settings.VERSION,
-        description=settings.DESCRIPTION + "\n\n**Milestone 1:** Backend foundation — health check, docs, config, error handling.\n**Milestone 2:** Statistical API — datasets upload/profile + analyses.\n**Milestone 3:** Database — users, datasets, projects, results, reports.\n**Milestone 5:** Auth — JWT registration/login.\n**Milestone 7:** Reports.",
+        description=settings.DESCRIPTION + "\n\n**Milestone 1:** Backend foundation.\n**Milestone 2:** Statistical API.\n**Milestone 3:** Database.\n**Milestone 5:** Auth.\n**Milestone 7:** Reports.\n**Version 3:** AI StatLab — ask/suggest/explain/cleaning (verified Python → AI explanation).",
 
 
         docs_url="/docs",
@@ -141,6 +142,9 @@ def create_app() -> FastAPI:
     app.include_router(projects_router, prefix=settings.API_V1_STR, tags=["projects"])
     app.include_router(reports_router, tags=["reports"])
     app.include_router(reports_router, prefix=settings.API_V1_STR, tags=["reports"])
+    # Version 3 — AI StatLab
+    app.include_router(ai_router, tags=["ai"])
+    app.include_router(ai_router, prefix=settings.API_V1_STR, tags=["ai"])
 
     @app.get(
         "/",
@@ -161,6 +165,7 @@ def create_app() -> FastAPI:
             "auth": "/auth",
             "projects": "/projects",
             "reports": "/reports",
+            "ai": "/ai",
         }
 
     return app

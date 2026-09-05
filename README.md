@@ -221,7 +221,14 @@ Version 1 Streamlit MVP ✅ complete. Version 2 milestones progression:
 - Backend: `backend/tests/test_health.py`, `test_milestone2.py`, `test_db.py`, `test_auth.py` (20 tests); Frontend: `tsc --noEmit` + `vite build`; `.github/workflows/ci.yml:1` runs both on push/PR
 
 **Milestone 9: Deployment — ✅ Complete (config)**
-- `backend/Dockerfile:1` (root-context), `frontend/Dockerfile:1` (multi-stage nginx), `docker-compose.yml:1` (postgres 16 + backend + frontend), `.dockerignore:1`, `VITE_API_URL` wiring, `ENVIRONMENT`/`CORS`/`SECRET_KEY` via env
+- `backend/Dockerfile:1` (root-context), `frontend/Dockerfile:1` (multi-stage nginx), `docker-compose.yml:1` (postgres 16 + backend + frontend), `render.yaml:1`, `vercel.json:1`, `docs/deploy-free.md:1` (Render+Vercel+Supabase free)
+
+### Version 3 — AI StatLab (Most Logical First Step — ✅ Foundation Complete)
+- **Architecture:** `Question → interpretation → candidate selection → Python verification → AI explanation → answer` (`backend/app/ai/service.py:1`). AI never calculates; `backend/app/ai/llm.py:1` mock (free, deterministic) / openai / ollama local-first
+- **Endpoints:** `POST /ai/ask` (full pipeline), `POST /ai/suggest` (candidates with reasons), `POST /ai/explain` (means/p-values/effects/assumptions), `POST /ai/cleaning-suggest` (missing/text→numeric/date/high-cardinality, approval-gated) (`backend/app/api/routes/ai.py:1`)
+- **Frontend:** `frontend/src/pages/AI.tsx:1` chat UI, proxies `/ai` via `vite.config.ts:1`
+- **Config:** `AI_PROVIDER=mock|openai|ollama`, `OPENAI_API_KEY`, `OLLAMA_HOST` (`backend/app/core/config.py:1`), `backend/.env.example:1`
+- **Verified:** `backend/tests/test_ai.py:1` 6 tests (interpret, suggest, ask, explain, cleaning, no-fabrication, local-first) → total backend `26 tests`
 
 ---
 
@@ -231,17 +238,18 @@ Version 1 Streamlit MVP ✅ complete. Version 2 milestones progression:
 # Version 1 — Streamlit core (19 tests)
 PYTHONPATH=. pytest tests -v
 
-# Version 2 — Backend (20 tests: health 7 + milestone2 7 + db 4 + auth 2)
+# Version 2 + 3 — Backend (26 tests: health 7 + milestone2 7 + db 4 + auth 2 + ai 6)
 PYTHONPATH=backend pytest backend/tests -v
+PYTHONPATH=backend pytest backend/tests/test_ai.py -v  # Version 3 AI pipeline
 
 # Frontend typecheck + build
 cd frontend && npm run build && npx tsc --noEmit
 
-# All (39 tests)
+# All (45 tests)
 PYTHONPATH=. pytest tests -v && PYTHONPATH=backend pytest backend/tests -v
 
 .venv/bin/python -m py_compile app.py src/*.py
-PYTHONPATH=backend python -m py_compile backend/app/*.py backend/app/**/*.py
+PYTHONPATH=backend python -m py_compile backend/app/*.py backend/app/**/*.py backend/app/ai/*.py
 ```
 
 Tests cover: row/col counts, missing-value % (including `is_empty` columns), `duplicate_row_count`, `is_numeric_series` (bool excluded), descriptive spot-checks (mean/median/Q1/Q3/IQR/std/var/CV with `pytest.approx`), constant-column handling, categorical frequency proportions, empty DataFrames (0 rows/0 cols), header-only CSVs, invalid CSVs, high-cardinality (>50), outlier IQR flags, and export CSV/PNG.

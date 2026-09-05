@@ -10,6 +10,7 @@ import { Charts } from "./pages/Charts";
 import { Projects } from "./pages/Projects";
 import { Reports } from "./pages/Reports";
 import { Auth } from "./pages/Auth";
+import { AI } from "./pages/AI";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/projects" element={<Projects />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/ai" element={<AI />} />
         </Routes>
       </Layout>
     </BrowserRouter>

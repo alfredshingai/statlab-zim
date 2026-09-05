@@ -57,6 +57,14 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     ALGORITHM: str = "HS256"
 
+    # AI (Version 3) — provider-agnostic, no vendor lock-in
+    OPENAI_API_KEY: str | None = None
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    OLLAMA_HOST: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3.1"
+    AI_PROVIDER: str = "mock"  # mock | openai | ollama — mock is deterministic & free for tests
+    AI_MAX_TOKENS: int = 800
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
