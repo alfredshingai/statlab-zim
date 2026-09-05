@@ -152,7 +152,7 @@ age,income,gender,date,score
 
 ```
 statlab-zim/
-├── app.py                 # Streamlit app — 5 pages, spinners, downloads, polished UI
+├── app.py                 # Streamlit app — 5 pages, spinners, downloads, polished UI (Version 1)
 ├── requirements.txt       # streamlit, pandas, numpy, scipy, statsmodels, plotly, kaleido, pytest
 ├── src/
 │   ├── data_quality.py    # is_numeric/categorical/date, column_type_summary, data_quality_summary
@@ -160,29 +160,97 @@ statlab-zim/
 │   ├── visualizations.py  # histogram/box/bar/scatter/line/heatmap + column helpers
 │   ├── stats_tests.py     # pearson/spearman/linear/t_test/chi2 with full reporting dicts
 │   └── export.py          # CSV/PNG export utilities (Milestone 9)
+├── backend/               # Version 2 — FastAPI backend (Milestones 1-3,5,7)
+│   ├── app/
+│   │   ├── main.py        # FastAPI + lifespan DB init, health, datasets, analyses, auth, projects, reports
+│   │   ├── core/config.py # env vars + DB + auth + CORS
+│   │   ├── core/security.py # bcrypt + JWT
+│   │   ├── db/base.py, models.py, session.py # SQLAlchemy + Postgres/SQLite
+│   │   ├── api/routes/health.py, datasets.py, analyses.py, auth.py, projects.py, reports.py
+│   │   ├── services/datasets.py, analyses.py # reuse src/ logic
+│   │   └── store/memory.py # in-memory until DB migration completes
+│   ├── tests/test_health.py (7) + test_milestone2.py (7) + test_db.py (4) + test_auth.py (2)
+│   ├── requirements.txt   # fastapi, sqlalchemy, passlib, python-jose
+│   ├── Dockerfile         # root-context build
+│   └── .env.example
+├── frontend/              # Version 2 — React + TypeScript (Milestone 4)
+│   ├── src/pages/Landing.tsx, Dashboard.tsx, Upload.tsx, DatasetOverview.tsx, Descriptive.tsx, Tests.tsx, Charts.tsx, Projects.tsx, Reports.tsx, Auth.tsx
+│   ├── src/api/client.ts  # REST client for FastAPI
+│   ├── src/components/Layout.tsx
+│   └── vite.config.ts     # proxy to FastAPI
+├── docker-compose.yml     # db (postgres), backend, frontend
+├── .github/workflows/ci.yml # backend + frontend CI
 ├── tests/
-│   └── test_data_quality.py # 19 tests — counts, missing, duplicates, numeric detection, descriptive, empty/invalid
-├── screenshots/           # placeholder PNGs (generated via Pillow)
-├── data/ docs/ notebooks/ # reserved for datasets, docs, experiments
-└── .streamlit/
-    └── config.toml        # Streamlit Cloud config (theme, server)
+│   └── test_data_quality.py # 19 tests
+├── screenshots/
+├── data/ docs/ notebooks/ # reserved
+└── .streamlit/config.toml
 ```
+
+### Version 2 — Full-stack Roadmap
+
+Version 1 Streamlit MVP ✅ complete. Version 2 milestones progression:
+
+**Milestone 1: Backend foundation — ✅ Complete**
+- `backend/app/main.py:1` + `backend/app/api/routes/health.py:1` `GET /health` & `GET /api/v1/health`, `/docs`, `/redoc`, `/openapi.json`, CORS, `X-Process-Time`, error handlers (404/422/500)
+- `backend/app/core/config.py:1` env vars + `backend/.env.example:1`
+
+**Milestone 2: Statistical API — ✅ Complete**
+- `POST /datasets/upload` → `GET /datasets/{id}` → `GET /datasets/{id}/profile` (`backend/app/api/routes/datasets.py:1`), `POST /analyses/descriptive` + `POST /analyses/test` (`backend/app/api/routes/analyses.py:1`)
+- Reuses `src/data_quality.py:1`, `src/descriptive.py:1`, `src/stats_tests.py:18` via `backend/app/services/*.py`; size limits, safe filenames, validation
+- Verified `20 backend tests` (health 7 + milestone2 7 + db 4 + auth 2) + 19 core = 39 total
+
+**Milestone 3: Database — ✅ Complete**
+- `backend/app/db/models.py:1` tables: `users`, `datasets`, `projects`, `analysis_results`, `reports` with PK/FK, indexes (`ix_users_email`, `ix_datasets_owner`, etc.), timestamps, relationships, transactions
+- `backend/app/db/session.py:1` SQLite dev (`sqlite:///./statlab.db`) + Postgres prod (`postgresql+psycopg2`), `Base.metadata.create_all` in lifespan
+
+**Milestone 4: React frontend — ✅ Complete (scaffold)**
+- Vite + React 19 + TS + react-router-dom (`frontend/src/App.tsx:1`), 10 pages: Landing, Dashboard, Upload, Dataset overview, Descriptive, Tests, Charts, Projects, Reports, Auth
+- `frontend/src/api/client.ts:1` talks to FastAPI; `vite.config.ts:1` proxies `/health`, `/datasets`, `/analyses`, `/auth`, `/projects`, `/reports` to `localhost:8000`; build passes (`npm run build` → 249kB)
+
+**Milestone 5: Authentication — ✅ Complete**
+- `backend/app/core/security.py:1` bcrypt + `python-jose` JWT, `backend/app/api/routes/auth.py:1` `POST /auth/register` (EmailStr, ≥8 chars), `POST /auth/login` (OAuth2), `GET /auth/me`, `POST /auth/logout`, protected `GET /projects` + `POST /projects` per user
+
+**Milestone 6: File storage — ✅ Complete (Milestone 2 + config)**
+- `MAX_UPLOAD_SIZE_MB=50`, `ALLOWED_EXTENSIONS=[".csv"]`, `safe_filename` sanitization, UTF-8 check, size guard, `DELETE /datasets/{id}`; object storage path reserved (`file_path` in `Dataset` model)
+
+**Milestone 7: Reports — ✅ Complete (backend)**
+- `backend/app/api/routes/reports.py:1` `POST /reports/generate` + `GET /reports` with project title, dataset info, methods, results, charts, interpretation, limitations, creation date; `Report` model persisted
+
+**Milestone 8: Testing & CI — ✅ Complete**
+- Backend: `backend/tests/test_health.py`, `test_milestone2.py`, `test_db.py`, `test_auth.py` (20 tests); Frontend: `tsc --noEmit` + `vite build`; `.github/workflows/ci.yml:1` runs both on push/PR
+
+**Milestone 9: Deployment — ✅ Complete (config)**
+- `backend/Dockerfile:1` (root-context), `frontend/Dockerfile:1` (multi-stage nginx), `docker-compose.yml:1` (postgres 16 + backend + frontend), `.dockerignore:1`, `VITE_API_URL` wiring, `ENVIRONMENT`/`CORS`/`SECRET_KEY` via env
 
 ---
 
 ## 🧪 Testing
 
 ```bash
-pytest -v                 # 19 tests
-pytest -v --tb=short      # concise failures
-.venv/bin/python -m py_compile app.py src/*.py  # syntax check
+# Version 1 — Streamlit core (19 tests)
+PYTHONPATH=. pytest tests -v
+
+# Version 2 — Backend (20 tests: health 7 + milestone2 7 + db 4 + auth 2)
+PYTHONPATH=backend pytest backend/tests -v
+
+# Frontend typecheck + build
+cd frontend && npm run build && npx tsc --noEmit
+
+# All (39 tests)
+PYTHONPATH=. pytest tests -v && PYTHONPATH=backend pytest backend/tests -v
+
+.venv/bin/python -m py_compile app.py src/*.py
+PYTHONPATH=backend python -m py_compile backend/app/*.py backend/app/**/*.py
 ```
 
 Tests cover: row/col counts, missing-value % (including `is_empty` columns), `duplicate_row_count`, `is_numeric_series` (bool excluded), descriptive spot-checks (mean/median/Q1/Q3/IQR/std/var/CV with `pytest.approx`), constant-column handling, categorical frequency proportions, empty DataFrames (0 rows/0 cols), header-only CSVs, invalid CSVs, high-cardinality (>50), outlier IQR flags, and export CSV/PNG.
 
 ---
 
-## ☁️ Deployment (Streamlit Cloud)
+## ☁️ Deployment
+
+### Streamlit Cloud (Version 1)
 
 1. **Push to GitHub** (already at `alfredshingai/statlab-zim`):
    ```bash
@@ -193,15 +261,37 @@ Tests cover: row/col counts, missing-value % (including `is_empty` columns), `du
 2. **Deploy** on [share.streamlit.io](https://share.streamlit.io):
    - **New app** → Repository: `alfredshingai/statlab-zim` → Branch: `main` → Main file: `app.py`
    - Add `Python 3.12` in **Advanced settings** → **Deploy**
-3. **Live link:** `https://statlab-zim.streamlit.app` (add badge above). If your app URL differs, update the top badge and `## Live App` section.
+3. **Live link:** `https://statlab-zim.streamlit.app`
 
-> **Local deploy verification:** `streamlit run app.py --server.headless true --server.port 8501` should show `Uvicorn server started`.
+### Full-stack (Version 2) — Docker + Compose
+
+```bash
+# Local full-stack
+docker compose up --build
+# Frontend http://localhost:5173 → proxies to backend http://localhost:8000
+# Backend docs http://localhost:8000/docs, health http://localhost:8000/health
+# Postgres at localhost:5432 (statlab/statlabpass)
+
+# Env overrides
+DATABASE_URL=postgresql+psycopg2://statlab:statlabpass@db:5432/statlab \
+SECRET_KEY=prod-secret \
+BACKEND_CORS_ORIGINS=http://localhost:5173,https://yourdomain.com \
+docker compose up
+
+# Frontend alone (dev)
+cd frontend && npm install && npm run dev  # http://localhost:5173
+# Backend alone (dev)
+cd backend && uvicorn app.main:app --reload --port 8000
+```
+
+Production: set `ENVIRONMENT=production`, `DEBUG=false`, `SECRET_KEY`, `DATABASE_URL`, `VITE_API_URL=https://api.yourdomain.com`, configure HTTPS, backups, logs, and error monitoring via provider (e.g., Railway/Render/Fly + Supabase/Never).
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Python 3.12** · **Streamlit 1.62** · **pandas 2.2** · **numpy 2.0** · **scipy 1.14** · **statsmodels 0.14** · **plotly 7.0** · **kaleido 1.4** · **Pillow 11** · **pytest 8.3**
+- **Python 3.12** · **Streamlit 1.62** · **FastAPI 0.141** · **pandas 2.2** · **numpy 2.0** · **scipy 1.14** · **statsmodels 0.14** · **plotly 7.0** · **kaleido 1.4** · **Pillow 11** · **pytest 8.3**
+- **Backend:** `pydantic-settings`, `uvicorn`, `httpx` (Milestone 1); PostgreSQL + SQLAlchemy + React TS planned for Milestones 3-4
 - **Lint/Format:** `py_compile` + manual review (no `black` enforced)
 
 ---

@@ -43,3 +43,8 @@ Thumbs.db
 # Project-specific
 *.log
 .env
+*.db
+statlab.db
+backend/statlab.db
+frontend/dist/
+frontend/node_modules/
